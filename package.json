@@ -1,0 +1,31 @@
+{
+  "name": "auth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/jomspk/auth.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jomspk/auth/issues"
+  },
+  "homepage": "https://github.com/jomspk/auth#readme",
+  "dependencies": {
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
