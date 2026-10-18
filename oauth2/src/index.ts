@@ -3,6 +3,7 @@ import express from "express";
 const app = express();
 const PORT = 8000;
 const CLIENT_ID = "s6BhdRkqt3";
+const REDIRECT_URI = "http://localhost:3000/callback";
 
 app.get("/oauth2/authorize", (req, res) => {
     console.log("hello, this auth2");
