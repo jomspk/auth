@@ -7,8 +7,12 @@ const REDIRECT_URI = "http://localhost:3000/callback";
 const router = express.Router();
 
 router.get("/auth/login", (_, res) => {
-    let redirectUrl = AUTH_SERVER_URL + "oauth2/authorize" + "?response_type=code" + `&client_id=${CLIENT_ID}` + `&redirect_uri=${REDIRECT_URI}` + "&scope=read%20write";
-    res.redirect(redirectUrl);
+    const redirectUri = new URL(AUTH_SERVER_URL + "oauth2/authorize");
+    redirectUri.searchParams.append("responseType", "code");
+    redirectUri.searchParams.append("clientId", CLIENT_ID);
+    redirectUri.searchParams.append("redirectUri", REDIRECT_URI);
+    redirectUri.searchParams.append("scope", "read write");
+    res.redirect(redirectUri.toString());
 })
 
 export default router;
