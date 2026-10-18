@@ -15,4 +15,12 @@ router.get("/auth/login", (_, res) => {
     res.redirect(redirectUri.toString());
 })
 
+router.get("/auth/callback", (req, res) => {
+    const {code, error} = req.query;
+    if(error) {
+        console.log(error);
+    }
+    
+})
+
 export default router;
