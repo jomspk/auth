@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch client/src/index.ts"
+    "dev:client": "tsx watch client/src/index.ts",
+    "dev:oauth2": "tsx watch oauth2/src/index.ts"
   },
   "repository": {
     "type": "git",
