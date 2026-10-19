@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>クライアント登録</title>
+    </head>
+    <body>
+        <div>
+            <form action="/oauth2/client/registration" method="post">
+                <div>
+                    <label for="client_name">クライアント名</label>
+                    <input type="text" id="client_name" name="client_name" required>
+                    <span class="error-message"></span>
+                </div>
+                <div>
+                    <label for="redirect_uri">リダイレクトURI</label>
+                    <input type="text" id="redirect_uri" name="redirect_uri" required>
+                    <span class="error-message"></span>
+                </div>
+                <div>
+                    <fieldset id="scope">
+                        <legend>スコープ</legend>
+                        <label>
+                            <input type="checkbox" name="scope" value="read">
+                            read
+                        </label>
+                        <label>
+                            <input type="checkbox" name="scope" value="write">
+                            write
+                        </label>
+                        <label>
+                            <input type="checkbox" name="scope" value="openid">
+                            openid
+                        </label>
+                    </fieldset>
+                    <span class="error-message"></span>
+                </div>
+                <button type="submit">登録</button>
+            </form>
+        </div>
+    </body>
+</html>

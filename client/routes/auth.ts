@@ -20,7 +20,7 @@ router.get("/auth/callback", (req, res) => {
     if(error) {
         console.log(error);
     }
-    
+
 })
 
 export default router;

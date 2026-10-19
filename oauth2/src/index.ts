@@ -1,52 +1,20 @@
 import express from "express";
 import path from "node:path";
+import {addClient, getClient, addAuthCode} from "../storage/storage.js";
+import crypto from "node:crypto";
+import type {Client, AuthCode} from "../types/type.js"; 
 
 const app = express();
+app.use(express.urlencoded({ extended: true}));
 const PORT = 8000;
-const CLIENT_ID = "s6BhdRkqt3";
-const AUTH_CODE = "hogehoge";
-type Client = {
-    client_id: string;
-    redirect_uri: string;
-    scope: string[];
-}
-const clients: Client[] = [
-    {
-        client_id: "s6BhdRkqt3",
-        redirect_uri: "http://localhost:3000/callback",
-        scope: ["read", "write"],
-    },
-    {
-        client_id: "s6BhdRkqt4",
-        redirect_uri: "http://hogehoge.com/callback",
-        scope: ["read"],
-    },
-    {
-        client_id: "s6BhdRkqt5",
-        redirect_uri: "http://fugafuga.com/callback",
-        scope: ["read", "write", "admin_only"],
-    },
-    {
-        client_id: "s6BhdRkqt6",
-        redirect_uri: "http://piyopiyo.com/callback",
-        scope: ["read", "write", "maintainer_only"],
-    },
-    {
-        client_id: "s6BhdRkqt7",
-        redirect_uri: "http://foobar.com/callback",
-        scope: ["read", "write", "admin_only", "maintainer_only"],
-    },
-    {
-        client_id: "s6BhdRkqt10",
-        redirect_uri: "http://bazbaz.com/callback",
-        scope: ["read", "admin_only"],
-    },
-]
 
 app.get("/oauth2/authorize", (req, res) => {
     const {responseType, clientId, redirectUri, scope} = req.query;
     console.log(responseType, clientId, redirectUri, scope);
-    const client = clients.find(client => client.client_id === clientId);
+    if (!clientId) {
+        return res.status(400).json({error: "missing clientId"});
+    }
+    const client = getClient(String(clientId));
     if (!client) {
         return res.status(401).json({error: "Invalid client_id"});
     }
@@ -69,28 +37,54 @@ app.get("/oauth2/authorize", (req, res) => {
     res.sendFile(path.join(import.meta.dirname, "..", "views", "authorize.html"));
 });
 
-app.get("/oauth2/permit", (_, res) => {
+app.get("/oauth2/permit", (req, res) => {
     // セッションにログイン情報がなければ、ログインさせる
     // ログイン情報があれば、セッションからログイン情報とredirect_URIを取得する
     // この時、redirect_URLは必要。 RFCには、redirect_URLの引き継ぎ方法は書かれていない。セッションにするのが良さそう。
-    const clientId = "s6BhdRkqt3";
-    const client = clients.find(client => client.client_id === clientId);
+    const {clientId, scope} = req.query;
+    const client = getClient(String(clientId));
     if (!client) {
         return res.status(401).json({error: "Invalid client_id"});
     }
     const callbackUrl = new URL(client.redirect_uri);
-    callbackUrl.searchParams.set("code", AUTH_CODE);
+    const code = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const scopeArray = String(scope).split(/\s+/);
+    const authCode: AuthCode = {
+        code,
+        expires_at: expiresAt,
+        scope: scopeArray,
+        access_token: null,
+    }
+    addAuthCode(String(clientId), authCode);
+    callbackUrl.searchParams.set("code", code);
     res.redirect(callbackUrl.toString());
 })
 
-app.post("/oauth2/client_registration", (req, res) => {
-    const {redirect_uri} = req.body;
-    if (!redirect_uri) {
-        return res.status(400).json({error: "redirect_uri is required"});
+app.get("/oauth2/client/registration", (_, res) => {
+    res.sendFile(path.join(import.meta.dirname, "..", "views", "clientRegistration.html"));
+})
+
+app.post("/oauth2/client/registration", (req, res) => {
+    const {client_name, redirect_uri, scope} = req.body;
+    console.log(client_name, redirect_uri, scope);
+    if (!redirect_uri || !client_name || !scope) {
+        return res.status(400).json({error: "missing required fields"});
     }
-    const client = {
-        client_id: CLIENT_ID
+    if (scope.length === 0) {
+        return res.status(400).json({error: "scope is required"});
     }
+    const client_id = crypto.randomUUID();
+    const client_secret = crypto.randomBytes(32).toString("hex");
+    const client: Client = {
+        client_id,
+        redirect_uri,
+        scope,
+        client_name,
+        client_secret,
+        code: null,
+    }
+    addClient(client);
     res.status(200).json(client);
 })
 
