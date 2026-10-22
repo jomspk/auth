@@ -61,6 +61,10 @@ app.get("/oauth2/permit", (req, res) => {
     res.redirect(callbackUrl.toString());
 })
 
+app.post("/oauth2/accessToken", (req, res) => {
+    
+})
+
 app.get("/oauth2/client/registration", (_, res) => {
     res.sendFile(path.join(import.meta.dirname, "..", "views", "clientRegistration.html"));
 })
