@@ -36,6 +36,7 @@ router.get("/auth/callback", async (req, res) => {
     }
     const userPass = Buffer.from(`${config.client_id}:${config.client_secret}`).toString("base64");
     // RFC6749の4.1.3
+    // POSTメソッドがMUST
     // application/x-www-form-urlencoded形式で送信
     // 必須パラメータ
     // grant_type: 値は"authorization_code"がmust

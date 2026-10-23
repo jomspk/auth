@@ -3,6 +3,7 @@ import path from "node:path";
 import {addClient, getClient, addAuthCode} from "../storage/storage.js";
 import crypto from "node:crypto";
 import type {Client, AuthCode} from "../types/type.js"; 
+import {basicAuth} from "../utils/util.js";
 
 const app = express();
 app.use(express.urlencoded({ extended: true}));
@@ -48,12 +49,13 @@ app.get("/oauth2/permit", (req, res) => {
     }
     const callbackUrl = new URL(client.redirect_uri);
     const code = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expireAt = new Date(Date.now() + 10 * 60 * 1000);
     const scopeArray = String(scope).split(/\s+/);
     const authCode: AuthCode = {
         code,
-        expires_at: expiresAt,
+        expire_at: expireAt,
         scope: scopeArray,
+        isUsed: false,
         access_token: null,
     }
     addAuthCode(String(clientId), authCode);
@@ -62,7 +64,37 @@ app.get("/oauth2/permit", (req, res) => {
 })
 
 app.post("/oauth2/accessToken", (req, res) => {
-    
+    const {grant_type, code, redirect_uri} = req.body;
+    const authHeader = req.headers.authorization;
+    try {
+        if (!authHeader) {
+            throw new Error("Missing authHeader")
+        }
+        if (grant_type !== "authorization_code") {
+            throw new Error("Invalild grant type");
+        }
+        if (!code) {
+            throw new Error("Missing code");
+        }
+        const {clientId, clientSecret} = basicAuth(authHeader);
+        const client = getClient(clientId);
+        if (client.client_secret !== clientSecret) {
+            throw new Error("Invalid clientSecret"); 
+        }
+        if (!client.codeToken) {
+            throw new Error("Missing AuthCode");
+        }
+        if (client.codeToken.code !== code) {
+            throw new Error("Invalid AuthCode");
+        }
+        if (client.codeToken.expire_at <= new Date()) {
+            throw new Error("Expired AuthCode");
+        }
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unauthorized";
+        return res.status(401).set("WWW-Authenticate", 'Basic realm="oauth2"').json({error: message});
+    }
 })
 
 app.get("/oauth2/client/registration", (_, res) => {
@@ -86,7 +118,7 @@ app.post("/oauth2/client/registration", (req, res) => {
         scope,
         client_name,
         client_secret,
-        code: null,
+        codeToken: null,
     }
     addClient(client);
     res.status(200).json(client);

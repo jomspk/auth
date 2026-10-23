@@ -4,18 +4,22 @@ type Client = {
     scope: string[];
     client_name: string;
     client_secret: string;
-    code: AuthCode | null;
+    codeToken: AuthCode | null;
 }
 
 type AuthCode = {
     code: string;
-    expires_at: Date;
+    expire_at: Date;
     scope: string[];
+    isUsed: Boolean;
     access_token: AccessToken | null;
 }
 
+// RFC6749 5.1節
 type AccessToken = {
-    token: string[];
+    access_token: string;
+    token_type: string;
+    expire_in: Date;
 }
 
 export type { Client, AuthCode, AccessToken };
