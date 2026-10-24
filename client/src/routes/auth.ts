@@ -43,7 +43,7 @@ router.get("/auth/callback", async (req, res) => {
     // code: 認可コード
     // redirect_uri: 認可リクエストに含めていた場合は必須
     // client: 認可サーバーがクライアントの認証を行なっていない場合は必須(今回はいらない)
-    const accessTokenReq = await fetch(AUTH_SERVER_URL + "/oauth2/accessToken", {
+    const accessTokenReq = await fetch(AUTH_SERVER_URL + "oauth2/token", {
         method: "POST",
         headers: {
             Authorization: `Basic ${userPass}`,
@@ -54,7 +54,9 @@ router.get("/auth/callback", async (req, res) => {
             code: String(code),
         }),
     })
-
+    const data = await accessTokenReq.json();
+    console.log("this is data", data);
+    res.redirect("http://localhost:3000");
 })
 
 export default router;

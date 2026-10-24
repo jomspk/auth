@@ -39,8 +39,4 @@ const updateAuthCode = (clientId: string, authCode: AuthCode):void => {
     client.codeToken[authCodeIndex] = authCode;
 }
 
-const deleteAuthCode = (clientId: string):void => {
-    const client = getClient(clientId);
-}
-
-export { getClient, addClient, addAuthCode, deleteAuthCode, updateAuthCode, getAuthCodeIndex };
+export { getClient, addClient, addAuthCode, updateAuthCode, getAuthCodeIndex };
