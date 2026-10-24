@@ -18,37 +18,41 @@ const PORT = 8000;
 // RFC6749 4.1.2.1節
 // redirect URIが原因, クライアント識別子の欠落で失敗した場合、リダイレクトしてはならない
 // エラーレスポンスの時、application/x-www-form-urlencoded形式を使うべし
+// RFC6749 4.1.1節
+// 認可サーバーはリクエストを検証し、必須パラメータが全て存在し有効であることを確認する。
+// 有効であれば、リソースオーナーを認証し、認可の判断を得る
 app.get("/oauth2/authorize", (req, res) => {
     const {responseType, clientId, redirectUri, scope} = req.query;
-    console.log(responseType, clientId, redirectUri, scope);
-    if (!clientId) {
-        return res.status(400).json({error: "invalid_request"});
+    try {
+        if (!clientId || !redirectUri || !responseType || !scope) {
+            throw new Error("invalid_request");
+        }
+        const client = getClient(String(clientId));
+        if (redirectUri !== client.redirect_uri) {
+            throw new Error("invalid_request");
+        }
+        if (responseType !== "code") {
+            const errorUrl = new URL(client.redirect_uri);
+            errorUrl.searchParams.set("error", "unsupported_response_type");
+            return res.redirect(errorUrl.toString());
+        }
+        const requestedScopes = String(scope).split(/\s+/);
+        const allowedScopes = new Set(client.scope);
+        if (!requestedScopes.every((s) => allowedScopes.has(s))) {
+            const errorUrl = new URL(client.redirect_uri);
+            errorUrl.searchParams.set("error", "invalid_scope");
+            return res.redirect(errorUrl.toString());
+        }
+        req.session.authRequest = {
+            clientId: String(clientId),
+            redirectUri: String(redirectUri),
+            scope: String(scope),
+        }
+        res.sendFile(path.join(import.meta.dirname, "..", "views", "authorize.html"));
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unauthorized";
+        return res.status(400).json({error: message});
     }
-    const client = getClient(String(clientId));
-    if (!client) {
-        return res.status(401).json({error: "invalid_request"});
-    }
-    if (redirectUri !== client.redirect_uri) {
-        return res.status(401).json({error: "invalid_request"});
-    }
-    if (responseType !== "code") {
-        const errorUrl = new URL(client.redirect_uri);
-        errorUrl.searchParams.set("error", "unsupported_response_type");
-        return res.redirect(errorUrl.toString());
-    }
-    const requestedScopes = String(scope).split(/\s+/);
-    const allowedScopes = new Set(client.scope);
-    if (!requestedScopes.every((s) => allowedScopes.has(s))) {
-        const errorUrl = new URL(client.redirect_uri);
-        errorUrl.searchParams.set("error", "invalid_scope");
-        return res.redirect(errorUrl.toString());
-    }
-    req.session.authRequest = {
-        clientId: String(clientId),
-        redirectUri: String(redirectUri),
-        scope: String(scope),
-    }
-    res.sendFile(path.join(import.meta.dirname, "..", "views", "authorize.html"));
 });
 
 app.post("/oauth2/authorize", (req, res) => {
@@ -92,9 +96,12 @@ app.post("/oauth2/token", (req, res) => {
     console.log(grant_type, code, redirect_uri);
     try {
         if (grant_type !== "authorization_code") {
-            throw new Error("invalid_grant");
+            throw new Error("unsupported_grant_type");
         }
         if (!code) {
+            throw new Error("invalid_request");
+        }
+        if (!redirect_uri) {
             throw new Error("invalid_request");
         }
         if (!authHeader) {
@@ -104,10 +111,16 @@ app.post("/oauth2/token", (req, res) => {
         const client = getClient(clientId);
         const authCodeIndex = getAuthCodeIndex(clientId, code);
         const authCode = client.codeToken[authCodeIndex];
+        if (redirect_uri !== client.redirect_uri) {
+            throw new Error("invalid_grant");
+        }
         if (client.client_secret !== clientSecret) {
             throw new Error("invalid_client"); 
         }
         if (!authCode) {
+            throw new Error("invalid_grant");
+        }
+        if (authCode.isUsed) {
             throw new Error("invalid_grant");
         }
         if (authCode.code !== code) {

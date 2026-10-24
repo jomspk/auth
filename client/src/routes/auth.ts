@@ -1,5 +1,6 @@
 import express from "express";
 import {config} from "../../config.js";
+import path from "path";
 
 const AUTH_SERVER_URL = "http://localhost:8000/";
 
@@ -32,7 +33,7 @@ router.get("/auth/login", (_, res) => {
 router.get("/auth/callback", async (req, res) => {
     const {code, error} = req.query;
     if(error) {
-        console.log(error);
+        return res.sendFile(path.join(import.meta.dirname, "..", "views", "error.html"));
     }
     const userPass = Buffer.from(`${config.client_id}:${config.client_secret}`).toString("base64");
     // RFC6749の4.1.3
