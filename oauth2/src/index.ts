@@ -1,6 +1,6 @@
 import express from "express";
 import path from "node:path";
-import {addClient, getClient, addAuthCode} from "../storage/storage.js";
+import {addClient, getClient, addAuthCode, getAuthCodeIndex} from "../storage/storage.js";
 import crypto from "node:crypto";
 import type {Client, AuthCode} from "../types/type.js"; 
 import {basicAuth} from "../utils/util.js";
@@ -9,22 +9,25 @@ const app = express();
 app.use(express.urlencoded({ extended: true}));
 const PORT = 8000;
 
+// RFC6749 4.1.2.1節
+// redirect URIが原因, クライアント識別子の欠落で失敗した場合、リダイレクトしてはならない
+// エラーレスポンスの時、application/x-www-form-urlencoded形式を使うべし
 app.get("/oauth2/authorize", (req, res) => {
     const {responseType, clientId, redirectUri, scope} = req.query;
     console.log(responseType, clientId, redirectUri, scope);
     if (!clientId) {
-        return res.status(400).json({error: "missing clientId"});
+        return res.status(400).json({error: "invalid_request"});
     }
     const client = getClient(String(clientId));
     if (!client) {
-        return res.status(401).json({error: "Invalid client_id"});
+        return res.status(401).json({error: "invalid_request"});
     }
     if (redirectUri !== client.redirect_uri) {
-        return res.status(401).json({error: "Invalid redirectURI"});
+        return res.status(401).json({error: "invalid_request"});
     }
     if (responseType !== "code") {
         const errorUrl = new URL(client.redirect_uri);
-        errorUrl.searchParams.set("error", "invalid_request");
+        errorUrl.searchParams.set("error", "unsupported_response_type");
         return res.redirect(errorUrl.toString());
     }
     const requestedScopes = String(scope).split(/\s+/);
@@ -68,33 +71,51 @@ app.post("/oauth2/accessToken", (req, res) => {
     const authHeader = req.headers.authorization;
     try {
         if (!authHeader) {
-            throw new Error("Missing authHeader")
+            throw new Error("invalid_request")
         }
-        if (grant_type !== "authorization_code") {
-            throw new Error("Invalild grant type");
+        if (grant_type !== "unsupported_grant_type") {
+            throw new Error("invalid_grant");
         }
         if (!code) {
-            throw new Error("Missing code");
+            throw new Error("invalid_request");
         }
         const {clientId, clientSecret} = basicAuth(authHeader);
         const client = getClient(clientId);
+        const authCodeIndex = getAuthCodeIndex(clientId, code);
+        const authCode = client.codeToken[authCodeIndex];
         if (client.client_secret !== clientSecret) {
-            throw new Error("Invalid clientSecret"); 
+            throw new Error("invalid_client"); 
         }
-        if (!client.codeToken) {
-            throw new Error("Missing AuthCode");
+        if (!authCode) {
+            throw new Error("invalid_grant");
         }
-        if (client.codeToken.code !== code) {
-            throw new Error("Invalid AuthCode");
+        if (authCode.code !== code) {
+            throw new Error("invalid_grant");
         }
-        if (client.codeToken.expire_at <= new Date()) {
-            throw new Error("Expired AuthCode");
+        if (authCode.expire_at <= new Date()) {
+            throw new Error("invalid_grant");
         }
-
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unauthorized";
-        return res.status(401).set("WWW-Authenticate", 'Basic realm="oauth2"').json({error: message});
+        return res.status(400).set({
+            "WWW-Authenticate": 'Basic realm="oauth2"',
+            "Content-Type": "application/json;charset=UTF-8",
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+        }).json({error: message});
     }
+    // RFC6749 5.1節
+    // トークンなどの機密情報を含むレスポンスにおいて、Cache-Control: no-storeとPragma: no-cacheを含めないといけない
+    const accessToken = crypto.randomBytes(32).toString("hex");
+    res.status(200).set({
+        "Content-Type": "application/json;charset=UTF-8",
+        "Cache-Control": "no-store",
+        "Pragma": "no-cache"
+    }).json({
+        "access_token": accessToken,
+        "token_type": "Bearer",
+        "expires_in": 3600, //１時間後にアクセストークン失効
+    })
 })
 
 app.get("/oauth2/client/registration", (_, res) => {
@@ -118,7 +139,7 @@ app.post("/oauth2/client/registration", (req, res) => {
         scope,
         client_name,
         client_secret,
-        codeToken: null,
+        codeToken: [],
     }
     addClient(client);
     res.status(200).json(client);

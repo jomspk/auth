@@ -4,7 +4,7 @@ type Client = {
     scope: string[];
     client_name: string;
     client_secret: string;
-    codeToken: AuthCode | null;
+    codeToken: AuthCode[];
 }
 
 type AuthCode = {
@@ -19,7 +19,7 @@ type AuthCode = {
 type AccessToken = {
     access_token: string;
     token_type: string;
-    expire_in: Date;
+    expire_at: Date;
 }
 
 export type { Client, AuthCode, AccessToken };

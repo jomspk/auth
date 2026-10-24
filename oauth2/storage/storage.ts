@@ -2,13 +2,13 @@
 // 認可コードはclientId, リダイレクトURIに結び付けられる。
 // 認可コードは２回以上使用禁止。認可コードが削除されたら、それによって発行されたアクセストークンを無効化すべし。
 // 認可コードは発行後短時間で失効しなければならない。最大有効期間は10分が推奨。
-import type { Client, AuthCode, AccessToken } from "../types/type.js";
+// 認可コードは複数発行できる。一回のターンに一回発行可能。
+import type { Client, AuthCode } from "../types/type.js";
 
 const clients: Client[] = [];
 
-const addClient = (client: Client):Boolean => {
+const addClient = (client: Client):void => {
     clients.push(client);
-    return true;
 }
 
 const getClient = (clientId: string):Client => {
@@ -19,17 +19,28 @@ const getClient = (clientId: string):Client => {
     return client;
 }
 
-const addAuthCode = (clientId: string, authCode: AuthCode):Boolean => {
+const addAuthCode = (clientId: string, authCode: AuthCode):void => {
     const client = getClient(clientId);
-    client.codeToken = authCode;
-    return true;
+    client.codeToken.push(authCode);
 }
 
-const addAccessToken = (clientId: string, accessToken: string)
-
-const deleteAuthCode = (clientId: string):Boolean => {
+const getAuthCodeIndex = (clientId: string, code: string):number => {
     const client = getClient(clientId);
-    return true;
+    const index = client.codeToken.findIndex(codeToken => codeToken.code === code);
+    if (index === -1) {
+        throw new Error("invalid code");
+    }
+    return index
 }
 
-export { getClient, addClient, addAuthCode, deleteAuthCode };
+const updateAuthCode = (clientId: string, authCode: AuthCode):void => {
+    const client = getClient(clientId);
+    const authCodeIndex = getAuthCodeIndex(clientId, authCode.code);
+    client.codeToken[authCodeIndex] = authCode;
+}
+
+const deleteAuthCode = (clientId: string):void => {
+    const client = getClient(clientId);
+}
+
+export { getClient, addClient, addAuthCode, deleteAuthCode, updateAuthCode, getAuthCodeIndex };
