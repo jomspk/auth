@@ -22,16 +22,16 @@ const PORT = 8000;
 // 認可サーバーはリクエストを検証し、必須パラメータが全て存在し有効であることを確認する。
 // 有効であれば、リソースオーナーを認証し、認可の判断を得る
 app.get("/oauth2/authorize", (req, res) => {
-    const {responseType, clientId, redirectUri, scope} = req.query;
+    const {response_type, client_id, redirect_uri, scope} = req.query;
     try {
-        if (!clientId || !redirectUri || !responseType || !scope) {
+        if (!client_id || !redirect_uri || !response_type || !scope) {
             throw new Error("invalid_request");
         }
-        const client = getClient(String(clientId));
-        if (redirectUri !== client.redirect_uri) {
+        const client = getClient(String(client_id));
+        if (redirect_uri !== client.redirect_uri) {
             throw new Error("invalid_request");
         }
-        if (responseType !== "code") {
+        if (response_type !== "code") {
             const errorUrl = new URL(client.redirect_uri);
             errorUrl.searchParams.set("error", "unsupported_response_type");
             return res.redirect(errorUrl.toString());
@@ -44,8 +44,8 @@ app.get("/oauth2/authorize", (req, res) => {
             return res.redirect(errorUrl.toString());
         }
         req.session.authRequest = {
-            clientId: String(clientId),
-            redirectUri: String(redirectUri),
+            clientId: String(client_id),
+            redirectUri: String(redirect_uri),
             scope: String(scope),
         }
         res.sendFile(path.join(import.meta.dirname, "..", "views", "authorize.html"));
