@@ -64,6 +64,7 @@ app.post("/oauth2/authorize", (req, res) => {
         return res.status(400).json({error: "invalid_request"});
     }
     const {clientId, scope} = authRequest;
+    console.log(scope);
     delete req.session.authRequest;
     const client = getClient(String(clientId));
     if (!client) {
@@ -139,6 +140,11 @@ app.post("/oauth2/token", (req, res) => {
         updateAuthCode(clientId, authCode)
         // RFC6749 5.1節
         // トークンなどの機密情報を含むレスポンスにおいて、Cache-Control: no-storeとPragma: no-cacheを含めないといけない
+        // パラメータ
+        // access_token (REQUIRED)
+        // token_type (REQUIRED)
+        // expires_in (RECOMMENDED)
+        // scope (OPTIONAL): 認可コードをリクエストするときに送ったscopeと違っていたら必ず含める必要あり
         res.status(200).set({
             "Content-Type": "application/json;charset=UTF-8",
             "Cache-Control": "no-store",
@@ -156,7 +162,7 @@ app.post("/oauth2/token", (req, res) => {
                 "Content-Type": "application/json;charset=UTF-8",
                 "Cache-Control": "no-store",
                 "Pragma": "no-cache",
-            })
+            }).json({error: message});
         }
         return res.status(400).set({
             "Content-Type": "application/json;charset=UTF-8",
@@ -176,6 +182,7 @@ app.post("/oauth2/client/registration", (req, res) => {
     if (!redirect_uri || !client_name || !scope) {
         return res.status(400).json({error: "missing required fields"});
     }
+    const scopeArray: string[] = Array.isArray(scope) ? scope : [scope];
     if (scope.length === 0) {
         return res.status(400).json({error: "scope is required"});
     }
@@ -184,7 +191,7 @@ app.post("/oauth2/client/registration", (req, res) => {
     const client: Client = {
         client_id,
         redirect_uri,
-        scope,
+        scope: scopeArray,
         client_name,
         client_secret,
         codeToken: [],

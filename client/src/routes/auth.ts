@@ -6,11 +6,19 @@ const AUTH_SERVER_URL = "http://localhost:8000/";
 
 const router = express.Router();
 
+// RFC6749 4.1.1節
+// GETメソッド
+// application/x-www-form-urlencoded形式で送信
+// パラメータ
+// response_type (REQUIRED) codeに設定すべき
+// client_id (REQUIRED)
+// redirect_uri (OPTIONAL)
+// scope (OPTIONAL)
 router.get("/auth/login", (_, res) => {
     const redirectUri = new URL(AUTH_SERVER_URL + "oauth2/authorize");
-    redirectUri.searchParams.append("responseType", "code");
-    redirectUri.searchParams.append("clientId", config.client_id);
-    redirectUri.searchParams.append("redirectUri", config.redirect_uri);
+    redirectUri.searchParams.append("response_type", "code");
+    redirectUri.searchParams.append("client_id", config.client_id);
+    redirectUri.searchParams.append("redirect_uri", config.redirect_uri);
     redirectUri.searchParams.append("scope", "read write");
     res.redirect(redirectUri.toString());
 })
@@ -53,6 +61,7 @@ router.get("/auth/callback", async (req, res) => {
         body: new URLSearchParams({
             grant_type: "authorization_code",
             code: String(code),
+            redirect_uri: config.redirect_uri,
         }),
     })
     const data = await accessTokenReq.json();
