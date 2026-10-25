@@ -133,7 +133,7 @@ app.post("/oauth2/token", (req, res) => {
         const accessToken:AccessToken = {
             access_token: crypto.randomBytes(32).toString("hex"),
             token_type: "Bearer",
-            expire_at: new Date(Date.now() + 10 * 60 * 1000)
+            expire_at: new Date(Date.now() + 60 * 60 * 1000)
         }
         authCode.isUsed = true
         authCode.access_token = accessToken
@@ -183,7 +183,7 @@ app.post("/oauth2/client/registration", (req, res) => {
         return res.status(400).json({error: "missing required fields"});
     }
     const scopeArray: string[] = Array.isArray(scope) ? scope : [scope];
-    if (scope.length === 0) {
+    if (scopeArray.length === 0) {
         return res.status(400).json({error: "scope is required"});
     }
     const client_id = crypto.randomUUID();

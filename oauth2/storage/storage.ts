@@ -14,7 +14,7 @@ const addClient = (client: Client):void => {
 const getClient = (clientId: string):Client => {
     const client = clients.find(client => client.client_id === clientId);
     if (!client) {
-        throw new Error("invalid_request");
+        throw new Error("invalid_client");
     }
     return client;
 }
@@ -28,7 +28,7 @@ const getAuthCodeIndex = (clientId: string, code: string):number => {
     const client = getClient(clientId);
     const index = client.codeToken.findIndex(codeToken => codeToken.code === code);
     if (index === -1) {
-        throw new Error("invalid_request");
+        throw new Error("invalid_grant");
     }
     return index
 }
