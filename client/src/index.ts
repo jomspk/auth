@@ -12,5 +12,5 @@ app.get("/", (_req, res) => {
 app.use(authRouter);
 
 app.listen(PORT, () => {
-    console.log(`localhost:${PORT}で受信しています`);
+    console.log(`localhost.proxyman.io:${PORT}で受信しています`);
 });

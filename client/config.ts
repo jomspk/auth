@@ -1,7 +1,7 @@
 export const config = {
-    client_id: "4489b9bf-51c5-42ef-ba89-adb7b8038076",
-    redirect_uri: "http://localhost:3000/auth/callback",
-    client_secret: "8b7bafbfa0d022d9955fef1613648c459306577d8989fff8d5dce1f04cf95a21",
+    client_id: "3fe0c710-5225-4203-8958-105ed2554769",
+    redirect_uri: "http://localhost.proxyman.io:3000/auth/callback",
+    client_secret: "95823e3a30ca8dfef45417dcdd9780d599887248057dc0b96669790d49ff4b77",
     scope: "read write",
     
 }

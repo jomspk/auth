@@ -2,7 +2,7 @@ import express from "express";
 import {config} from "../../config.js";
 import path from "path";
 
-const AUTH_SERVER_URL = "http://localhost:8000/";
+const AUTH_SERVER_URL = "http://localhost.proxyman.io:8000/";
 
 const router = express.Router();
 
@@ -66,7 +66,7 @@ router.get("/auth/callback", async (req, res) => {
     })
     const data = await accessTokenReq.json();
     console.log("this is data", data);
-    res.redirect("http://localhost:3000");
+    res.redirect("http://localhost.proxyman.io:3000");
 })
 
 export default router;

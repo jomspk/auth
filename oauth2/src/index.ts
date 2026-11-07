@@ -59,32 +59,34 @@ app.post("/oauth2/authorize", (req, res) => {
     // セッションにログイン情報がなければ、ログインさせる
     // ログイン情報があれば、セッションからログイン情報とredirect_URIを取得する
     // この時、redirect_URLは必要。 RFCには、redirect_URLの引き継ぎ方法は書かれていない。セッションにするのが良さそう。
-    const authRequest = req.session.authRequest;
-    if (!authRequest) {
-        return res.status(400).json({error: "invalid_request"});
+    try {
+        const authRequest = req.session.authRequest;
+        if (!authRequest) {
+            throw new Error("invalid_request");
+        }
+        const {clientId, scope} = authRequest;
+        console.log(scope);
+        delete req.session.authRequest;
+        const client = getClient(String(clientId));
+        const callbackUrl = new URL(client.redirect_uri);
+        const code = crypto.randomBytes(32).toString("hex");
+        const expireAt = new Date(Date.now() + 10 * 60 * 1000);
+        const scopeArray = String(scope).split(/\s+/);
+        const authCode: AuthCode = {
+            code,
+            expire_at: expireAt,
+            scope: scopeArray,
+            isUsed: false,
+            access_token: null,
+        }
+        addAuthCode(String(clientId), authCode);
+        callbackUrl.searchParams.set("code", code);
+        console.log(callbackUrl.toString());
+        res.redirect(callbackUrl.toString());
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unauthorized";
+        return res.status(400).json({error: message});
     }
-    const {clientId, scope} = authRequest;
-    console.log(scope);
-    delete req.session.authRequest;
-    const client = getClient(String(clientId));
-    if (!client) {
-        return res.status(401).json({error: "Invalid client_id"});
-    }
-    const callbackUrl = new URL(client.redirect_uri);
-    const code = crypto.randomBytes(32).toString("hex");
-    const expireAt = new Date(Date.now() + 10 * 60 * 1000);
-    const scopeArray = String(scope).split(/\s+/);
-    const authCode: AuthCode = {
-        code,
-        expire_at: expireAt,
-        scope: scopeArray,
-        isUsed: false,
-        access_token: null,
-    }
-    addAuthCode(String(clientId), authCode);
-    callbackUrl.searchParams.set("code", code);
-    console.log(callbackUrl.toString());
-    res.redirect(callbackUrl.toString());
 })
 
 // RFC6749 5.2節
@@ -201,5 +203,5 @@ app.post("/oauth2/client/registration", (req, res) => {
 })
 
 app.listen(PORT, () => {
-    console.log(`localhost:${PORT}で認可サーバーが動いています`);
+    console.log(`localhost.proxyman.io:${PORT}で認可サーバーが動いています`);
 });
