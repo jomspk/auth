@@ -2,7 +2,8 @@ import express from "express";
 import {config} from "../../config.js";
 import path from "path";
 
-const AUTH_SERVER_URL = "http://localhost.proxyman.io:8000/";
+const AUTH_SERVER_PUBLIC_URL = process.env.AUTH_SERVER_PUBLIC_URL ?? "http://localhost:8000/";
+const AUTH_SERVER_INTERNAL_URL = process.env.AUTH_SERVER_INTERNAL_URL ?? "http://localhost:8000/";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ const router = express.Router();
 // redirect_uri (OPTIONAL)
 // scope (OPTIONAL)
 router.get("/auth/login", (_, res) => {
-    const redirectUri = new URL(AUTH_SERVER_URL + "oauth2/authorize");
+    const redirectUri = new URL(AUTH_SERVER_PUBLIC_URL + "oauth2/authorize");
     redirectUri.searchParams.append("response_type", "code");
     redirectUri.searchParams.append("client_id", config.client_id);
     redirectUri.searchParams.append("redirect_uri", config.redirect_uri);
@@ -52,7 +53,7 @@ router.get("/auth/callback", async (req, res) => {
     // code: 認可コード
     // redirect_uri: 認可リクエストに含めていた場合は必須
     // client: 認可サーバーがクライアントの認証を行なっていない場合は必須(今回はいらない)
-    const accessTokenReq = await fetch(AUTH_SERVER_URL + "oauth2/token", {
+    const accessTokenReq = await fetch(AUTH_SERVER_INTERNAL_URL + "oauth2/token", {
         method: "POST",
         headers: {
             Authorization: `Basic ${userPass}`,
@@ -66,7 +67,7 @@ router.get("/auth/callback", async (req, res) => {
     })
     const data = await accessTokenReq.json();
     console.log("this is data", data);
-    res.redirect("http://localhost.proxyman.io:3000");
+    res.redirect("http://localhost:3000");
 })
 
 export default router;

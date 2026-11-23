@@ -5,15 +5,34 @@ import crypto from "node:crypto";
 import type {Client, AuthCode, AccessToken} from "../types/type.js"; 
 import {basicAuth} from "../utils/util.js";
 import session from "express-session";
+import { createClient } from "redis";
+import { RedisStore } from "connect-redis";
+
+const redisClient = createClient({url: process.env.REDIS_URL ?? "redis://localhost:6379"});
+redisClient.on("error", (err) => console.error("Redis error:", err));
+await redisClient.connect();
+
 
 const app = express();
 app.use(express.urlencoded({ extended: true}));
-app.use(session({
-    secret: "dev-secret",
-    resave: false,
-    saveUninitialized: false,
-}))
 const PORT = 8000;
+
+app.use(
+    session({
+        store: new RedisStore({ client: redisClient}),
+        secret: process.env.SESSION_SECRET ?? "dev-secret",
+        name: "auth_session",
+        resave: false,
+        saveUninitialized: false,
+        rolling: true,
+        cookie: {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 1000 * 60 * 60,
+        }
+    })
+)
 
 // RFC6749 4.1.2.1節
 // redirect URIが原因, クライアント識別子の欠落で失敗した場合、リダイレクトしてはならない
@@ -188,8 +207,10 @@ app.post("/oauth2/client/registration", (req, res) => {
     if (scopeArray.length === 0) {
         return res.status(400).json({error: "scope is required"});
     }
-    const client_id = crypto.randomUUID();
-    const client_secret = crypto.randomBytes(32).toString("hex");
+    // const client_id = crypto.randomUUID();
+    // const client_secret = crypto.randomBytes(32).toString("hex");
+    const client_id = "3fe0c710-5225-4203-8958-105ed2554769";
+    const client_secret = "95823e3a30ca8dfef45417dcdd9780d599887248057dc0b96669790d49ff4b77"
     const client: Client = {
         client_id,
         redirect_uri,
@@ -203,5 +224,5 @@ app.post("/oauth2/client/registration", (req, res) => {
 })
 
 app.listen(PORT, () => {
-    console.log(`localhost.proxyman.io:${PORT}で認可サーバーが動いています`);
+    console.log(`localhost:${PORT}で認可サーバーが動いています`);
 });

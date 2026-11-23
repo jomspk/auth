@@ -18,8 +18,8 @@ services:
     depends_on:
       - redis
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=prod-secret
     restart: unless-stopped
   client:
     build:
@@ -31,7 +31,8 @@ services:
     depends_on:
       - oauth2
     environment:
-      - OAUTH2_URL=http://oauth2:8000
+      - AUTH_SERVER_PUBLIC_URL=http://localhost:8000/
+      - AUTH_SERVER_INTERNAL_URL=http://oauth2:8000/
     restart: unless-stopped
 volumes:
   redis_data:
