@@ -1,0 +1,37 @@
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+  oauth2:
+    build:
+      context: ./oauth2
+      dockerfile: Dockerfile.oauth2
+    container_name: oauth2
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.client
+    container_name: client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - oauth2
+    environment:
+      - OAUTH2_URL=http://oauth2:8000
+    restart: unless-stopped
+volumes:
+  redis_data:
